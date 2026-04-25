@@ -362,7 +362,8 @@ class ScenarioDataBuilder():
     def merge_CL_in_SC_data(self):
         def create_fake_Candidate_ID(is_CL, sc, cnes):
             if is_CL == True:
-                return f"CL_{sc}"
+                # return f"CL_{sc}"
+                return sc
             return cnes
 
 

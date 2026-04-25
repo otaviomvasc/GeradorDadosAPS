@@ -1,4 +1,4 @@
-
+import pandas as pd
 
 #TODO: Isso deveria ser uma classe abstrata. Pedir IA PARA REFATORAR e testar depois!
 class text_messages_creator():
@@ -537,7 +537,7 @@ class text_messages_creator():
             text_aux = " ".join([
                         str(dk["origem"]).rstrip('.0'),
                         str(dk["destino"]).rstrip('.0'),
-                        str(dk["distancia"]).rstrip('.0'),
+                        str(dk["distancia"]),
                         str("\n") 
                     ])
 
@@ -563,11 +563,15 @@ class text_messages_creator_By_SC(text_messages_creator):
         self.dict_dist_SC_PHC = scenario_data.get("dist_SC_PHC")
 
     def define_EL_and_CL_dataframes(self):
-        self.EL_mask =  [isinstance(i, float) and i > 0 for i in self.scenario_dfs.CO_UNIDADE_UBS]
-        self.CL_mask =  [isinstance(i, str) for i in self.scenario_dfs.CO_UNIDADE_UBS]
+        # self.EL_mask =  [isinstance(i, float) and i > 0 for i in self.scenario_dfs.CO_UNIDADE_UBS]
+        self.EL_mask = [i not in self.scenario_dfs.SETOR.to_list() and i > 0 for i in self.scenario_dfs.CO_UNIDADE_UBS]
+        # self.CL_mask =  [isinstance(i, str) for i in self.scenario_dfs.CO_UNIDADE_UBS]        
+        self.CL_mask = self.scenario_dfs.IS_CL.to_list()
         self.df_exist_PHC = self.scenario_dfs[self.EL_mask]
         self.df_candidates_PHC = self.scenario_dfs[self.CL_mask]
-        self.df_PHC_EL_plus_EC = self.scenario_dfs[self.EL_mask or self.CL_mask]
+        # self.df_PHC_EL_plus_EC = self.scenario_dfs[self.EL_mask or self.CL_mask]
+        self.df_PHC_EL_plus_EC = pd.concat([self.df_exist_PHC, self.df_candidates_PHC])
+        b=0
 
     def create_SC_SC_text(self):
         header_text = "param D0_1 := \n"
@@ -802,7 +806,7 @@ class text_messages_creator_By_SC(text_messages_creator):
         df_base = self.df_exist_PHC.copy()
         for _, row in df_base.iterrows():
             # text_aux = f"{row.SETOR}\n"
-            text_aux = f"{str(row.SETOR).rstrip('.0')}\n"
+            text_aux = f"{str(row.CO_UNIDADE_UBS).rstrip('.0')}\n"
             self.texts_variables.append(text_aux)
 
         self.texts_variables.append(self.dot_vig)
@@ -810,7 +814,7 @@ class text_messages_creator_By_SC(text_messages_creator):
     def create_variable_costs_PHC_text(self):
         #Dados ainda nao disponiveis, por isso usei o default 80000
         comentary_text = ("# # Variable cost of PHC j / patient\n")
-        header_text = "param:	        ITEM1   SIZE	FC1		VC1:=\n"
+        header_text = "param:	        ITEM1   SIZE0	FC1		VC1:=\n"
         self.texts_variables.append(comentary_text)
         self.texts_variables.append(header_text)
         df_base = self.df_exist_PHC.copy()
@@ -820,7 +824,7 @@ class text_messages_creator_By_SC(text_messages_creator):
             text_aux = " ".join([
                 str(row.CO_UNIDADE).rstrip('.0'),
                 str(value_item), #ITEM 1
-                str(int(row.get("PORTE_UBS", 1))), #SIZE
+                str(row.get("PORTE_UBS", 1)).rstrip('.0'), #SIZE
                 #str(int(10)),
                 str(8), #FC1
                 str("."), #VC1
