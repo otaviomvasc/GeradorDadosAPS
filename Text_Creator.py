@@ -257,7 +257,7 @@ class text_messages_creator():
         header_text = f"param MAX_HOME_SHC := {self.scenario_data_config.maximo_deslocamento['MAX_HOME_SHC']};\n"
         self.texts_variables.append(header_text)
 
-        header_text = f"param MAX_HOME_THC := {self.scenario_data_config.maximo_deslocamento['MAX_HOME_THC']};\n"
+        header_text = f"param MAX_HOME_THC := {self.scenario_data_config.maximo_deslocamento['MAX_HOME_THC']};\n\n"
         self.texts_variables.append(header_text)
 
     def create_variable_costs_SHC_text(self): 
@@ -776,7 +776,7 @@ class text_messages_creator_By_SC(text_messages_creator):
     def create_variable_costs_PHC_text(self):
         #Dados ainda nao disponiveis, por isso usei o default 80000
         comentary_text = ("# # Variable cost of PHC j / patient\n")
-        header_text = "param:	        ITEM1   SIZE	FC1		VC1:=\n"
+        header_text = "param:	        ITEM1   SIZE0	FC1		VC1:=\n"
         self.texts_variables.append(comentary_text)
         self.texts_variables.append(header_text)
         df_base = self.scenario_dfs[self.scenario_dfs.CO_UNIDADE_UBS > 0].copy()
@@ -784,7 +784,7 @@ class text_messages_creator_By_SC(text_messages_creator):
         #setores censitarios que tem PHC 
         for _, row in df_base.iterrows():
             text_aux = " ".join([
-                str(row.SETOR),
+                str(row.SETOR).rstrip('.0'),
                 str(value_item), #ITEM 1
                 str(1), #SIZE
                 str(80000), #FC1
@@ -818,7 +818,7 @@ class text_messages_creator_By_SC(text_messages_creator):
         #setores censitarios que tem PHC #df_candidates_PHC
         for _, row in df_base.iterrows():
             text_aux = " ".join([
-                str(row.CO_UNIDADE),
+                str(row.CO_UNIDADE).rstrip('.0'),
                 str(value_item), #ITEM 1
                 str(int(row.get("PORTE_UBS", 1))), #SIZE
                 #str(int(10)),
@@ -1151,7 +1151,7 @@ class text_messages_creator_By_Cluster(text_messages_creator):
     def create_variable_costs_PHC_text(self):
         #Dados ainda nao disponiveis, por isso usei o default 80000
         comentary_text = ("# # Variable cost of PHC j / patient\n")
-        header_text = "param:	        ITEM1   SIZE	FC1		VC1:=\n"
+        header_text = "param:	        ITEM1   SIZE0	FC1		VC1:=\n"
         self.texts_variables.append(comentary_text)
         self.texts_variables.append(header_text)
         df_base = self.df_exist_PHC.copy()
@@ -1159,7 +1159,7 @@ class text_messages_creator_By_Cluster(text_messages_creator):
         #setores censitarios que tem PHC #df_candidates_PHC
         for _, row in df_base.iterrows():
             text_aux = " ".join([
-                str(row.CO_UNIDADE),
+                str(row.CO_UNIDADE).rstrip('.0'),
                 str(value_item), #ITEM 1
                 str(int(row.get("PORTE_UBS", 1))), #SIZE
                 #str(int(10)),
