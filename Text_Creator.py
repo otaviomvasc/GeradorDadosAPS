@@ -563,11 +563,11 @@ class text_messages_creator_By_SC(text_messages_creator):
         self.dict_dist_SC_PHC = scenario_data.get("dist_SC_PHC")
 
     def define_EL_and_CL_dataframes(self):
-        self.EL_mask =  [isinstance(i, float) and i > 0 for i in self.scenario_dfs.CO_UNIDADE_UBS]
-        self.CL_mask =  [isinstance(i, str) for i in self.scenario_dfs.CO_UNIDADE_UBS]
-        self.df_exist_PHC = self.scenario_dfs[self.EL_mask]
-        self.df_candidates_PHC = self.scenario_dfs[self.CL_mask]
-        self.df_PHC_EL_plus_EC = self.scenario_dfs[self.EL_mask or self.CL_mask]
+        #self.EL_mask =  [isinstance(i, float) and i > 0 for i in self.scenario_dfs.CO_UNIDADE_UBS]
+        #self.CL_mask =  [isinstance(i, str) for i in self.scenario_dfs.CO_UNIDADE_UBS]
+        self.df_exist_PHC = self.scenario_dfs[((self.scenario_dfs.CO_UNIDADE_UBS > 0) & (self.scenario_dfs.IS_CL == False))].reset_index(drop=True)
+        self.df_candidates_PHC = self.scenario_dfs[((self.scenario_dfs.CO_UNIDADE_UBS > 0) & (self.scenario_dfs.IS_CL == True))].reset_index(drop=True)
+        self.df_PHC_EL_plus_EC = self.scenario_dfs[(self.scenario_dfs.CO_UNIDADE_UBS > 0)].reset_index(drop=True)
 
     def create_SC_SC_text(self):
         header_text = "param D0_1 := \n"

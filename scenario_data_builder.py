@@ -362,14 +362,20 @@ class ScenarioDataBuilder():
     def merge_CL_in_SC_data(self):
         def create_fake_Candidate_ID(is_CL, sc, cnes):
             if is_CL == True:
-                return f"CL_{sc}"
+                return sc
             return cnes
 
 
 
         is_cl = [i in self.df_CL.id_setor.to_list() for i in self.df_setor_censitario.SETOR]
         self.df_setor_censitario["IS_CL"] = is_cl
-        self.df_setor_censitario["CO_UNIDADE_UBS"] = self.df_setor_censitario.apply(lambda x: create_fake_Candidate_ID(x.IS_CL, x.SETOR, x.CO_UNIDADE_UBS), axis=1 )
+        self.df_setor_censitario["CO_UNIDADE_UBS"] = self.df_setor_censitario.apply(
+            lambda x: create_fake_Candidate_ID(x.IS_CL, x.SETOR, x.CO_UNIDADE_UBS), axis=1 
+            )
+
+        cols = [70.0, 71.0, 72.0, 74.0]
+        self.df_setor_censitario.loc[self.df_setor_censitario.IS_CL, cols] = \
+            self.df_setor_censitario.loc[self.df_setor_censitario.IS_CL, cols].fillna(0.0)
 
 
     def build(self):
