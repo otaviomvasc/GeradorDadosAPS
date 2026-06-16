@@ -14,7 +14,8 @@ import pandas as pd
 pd.set_option('display.max_columns', None)
 # %%
 
-path_n = r"C:\GeradorDadosAPS\GeraDadosAPS\Dados\Dados_todos_municipios\census_2000_2010_2022_normalized_indices.csv"
+# path_n = r"C:\GeradorDadosAPS\GeraDadosAPS\Dados\Dados_todos_municipios\census_2000_2010_2022_normalized_indices.csv"
+path_n = r"Dados\census_2000_2010_2022_normalized_indices.csv"
 df = pd.read_csv(path_n)
 # %%
 DICT_CODE = {"Lagoa Santa": 313760, 

@@ -103,7 +103,7 @@ class DistanceAPICalculator:
                 dist = self._get_cached_distance(sc_origem, sc_destino)
 
                 if dist is None:
-                    print(f"fallback_{sc_origem}_{sc_destino}")
+                    # print(f"fallback_{sc_origem}_{sc_destino}")
                     setores_sem_distancias.append(sc_origem)
                     dist = self._fetch_distance_with_fallback(dt)
 
@@ -130,7 +130,7 @@ class DistanceAPICalculator:
 
         raio_terra_m = 6371000  # raio médio da Terra em metros
         distancia_m = raio_terra_m * c
-        print("usando distancia haversine!")
+        # print("usando distancia haversine!")
         return int(distancia_m)
 
     def get_distance_in_API(self, dados_og):
@@ -160,19 +160,40 @@ class DistanceAPICalculator:
 
 
 class DistanceAPICalculatorBySC(DistanceAPICalculator):
-    def __init__(self, path_jsons_instances, df_setor_censitario, mun_name):
+    def __init__(self, path_jsons_instances, df_setor_censitario, mun_name, df_CL):
         self.path_jsons_instances = path_jsons_instances
         self.df_setor_censitario = df_setor_censitario
+        self.df_CL = df_CL              # ← ADD
         self.json_dist_format = dict()
         self.client = ORSMatrixClient(api_key=API_KEY, profile='driving-car')
         self.mun_name = mun_name
     
     def create_origin_dest_PHC_SC(self):
+        # ALL sectors are demand origins
         SC_id = self.df_setor_censitario.SETOR.to_list()
         SC_lat = self.df_setor_censitario.LAT.to_list()
         SC_long = self.df_setor_censitario.LONG.to_list()
-        df_UBS_mask =  [isinstance(i, str) or i > 0 for i in self.df_setor_censitario.CO_UNIDADE_UBS]
-        df_UBS =  self.df_setor_censitario[df_UBS_mask]
+
+        # Destinations: existing PHC (IS_CL=False, CO_UNIDADE_UBS>0)
+        # 17
+        df_EL = self.df_setor_censitario[
+            (self.df_setor_censitario.CO_UNIDADE_UBS > 0) &
+            (self.df_setor_censitario.IS_CL == False)
+        ]
+
+        # Destinations: candidate locations — driven by df_CL directly
+        # 30
+        cl_sectors = set(self.df_CL.id_setor.to_list())
+        df_CL_rows = self.df_setor_censitario[
+            self.df_setor_censitario.SETOR.isin(cl_sectors)
+        ]
+
+        # 47
+        df_UBS = pd.concat([df_EL, df_CL_rows]).drop_duplicates(subset="SETOR")
+
+        # df_UBS_mask =  [isinstance(i, str) or i > 0 for i in self.df_setor_censitario.CO_UNIDADE_UBS]
+        # df_UBS =  self.df_setor_censitario[df_UBS_mask]
+
         PHC_id = df_UBS.SETOR.to_list()
         PHC_lat = df_UBS.LAT.to_list()
         PHC_long = df_UBS.LONG.to_list()
@@ -201,18 +222,30 @@ class DistanceAPICalculatorBySC(DistanceAPICalculator):
         SC_id = self.df_setor_censitario.SETOR.to_list()
         SC_lat = self.df_setor_censitario.LAT.to_list()
         SC_long = self.df_setor_censitario.LONG.to_list()
-        origin_dest_pairs = {}
+        
+
         #como saber qual o setor é existente?
         #self.df_setor_censitario[self.df_setor_censitario.CO_UNIDADE_UBS > 0].CO_UNIDADE_UBS.iloc[0]
 
-        #Aqui precisa ser: Unidades reais e Setores censitrarios
-        exist_PHC_unds = [isinstance(i, float) and i > 0 for i in self.df_setor_censitario.CO_UNIDADE_UBS]
-
-        df_UBS =  self.df_setor_censitario[exist_PHC_unds]
-        PHC_id = df_UBS.SETOR.to_list()
-        PHC_lat = df_UBS.LAT.to_list()
-        PHC_long = df_UBS.LONG.to_list()
+        # #Aqui precisa ser: Unidades reais e Setores censitrarios
+        # exist_PHC_unds = [isinstance(i, float) and i > 0 for i in self.df_setor_censitario.CO_UNIDADE_UBS]
+        # df_UBS =  self.df_setor_censitario[exist_PHC_unds]
         
+        # PHC_id = df_UBS.SETOR.to_list()
+        # PHC_lat = df_UBS.LAT.to_list()
+        # PHC_long = df_UBS.LONG.to_list()
+
+        # Only truly existing PHC — IS_CL=False ensures CL sectors are excluded
+        df_EL = self.df_setor_censitario[
+            (self.df_setor_censitario.CO_UNIDADE_UBS > 0) &
+            (self.df_setor_censitario.IS_CL == False)      # ← was: isinstance(i, float) — WRONG
+        ]
+
+        PHC_id = df_EL.SETOR.to_list()
+        PHC_lat = df_EL.LAT.to_list()
+        PHC_long = df_EL.LONG.to_list()
+        
+        origin_dest_pairs = {}
         for o_id, o_lat, o_long in zip(PHC_id, PHC_lat, PHC_long):
             for d_id, d_lat, d_long in zip(SC_id, SC_lat, SC_long):
                 origin_dest_pairs[(o_id, d_id)] = {
@@ -230,6 +263,115 @@ class DistanceAPICalculatorBySC(DistanceAPICalculator):
 
         # guarda no objeto para uso posterior
         self.origin_dest_Exist_PHC_to_SC = origin_dest_pairs
+
+    def create_origin_dest_PHC_to_same_facilities_level(self):
+    # Destinations: existing PHC (IS_CL=False, CO_UNIDADE_UBS>0)
+        df_EL = self.df_setor_censitario[
+            (self.df_setor_censitario.CO_UNIDADE_UBS > 0) &
+            (self.df_setor_censitario.IS_CL == False)
+        ]
+
+        # Destinations: candidate locations — driven by df_CL directly
+        cl_sectors = set(self.df_CL.id_setor.to_list())        
+        df_CL = self.df_setor_censitario[
+            self.df_setor_censitario.SETOR.isin(cl_sectors)
+        ]        
+        
+        df_UBS = pd.concat([df_EL, df_CL]).drop_duplicates(subset="SETOR")
+
+        # EL_id  = df_EL.SETOR.to_list()
+        EL_id  = df_EL.CO_UNIDADE_UBS.astype(int).to_list()
+        EL_lat  = df_EL.LAT.to_list()
+        EL_long  = df_EL.LONG.to_list()
+
+        CL_id  = df_CL.SETOR.to_list()
+        
+
+        # PHC_id = df_UBS.SETOR.to_list()
+        PHC_id = EL_id + CL_id
+        PHC_lat = df_UBS.LAT.to_list()
+        PHC_long = df_UBS.LONG.to_list()
+        
+        origin_dest_pairs = {}
+        # (df_EL > PHC_id)
+
+        for o_id, o_lat, o_long in zip(EL_id, EL_lat, EL_long):
+            for d_id, d_lat, d_long in zip(PHC_id, PHC_lat, PHC_long):
+                origin_dest_pairs[(o_id, d_id)] = {
+                    "origin": {
+                        "id": o_id,
+                        "lat": o_lat,
+                        "long": o_long,
+                    },
+                    "destination": {
+                        "id": d_id,
+                        "lat": d_lat,
+                        "long": d_long,
+                    },
+                }        
+
+        # guarda no objeto para uso posterior
+        self.origin_dest_exist_PHC_all_PHC = origin_dest_pairs
+
+
+
+
+    def create_origin_dest_SC_PHC(self):
+        # ALL sectors are demand origins
+        SC_id = self.df_setor_censitario.SETOR.to_list()
+        SC_lat = self.df_setor_censitario.LAT.to_list()
+        SC_long = self.df_setor_censitario.LONG.to_list()
+
+
+    # Destinations: existing PHC (IS_CL=False, CO_UNIDADE_UBS>0)
+        df_EL = self.df_setor_censitario[
+            (self.df_setor_censitario.CO_UNIDADE_UBS > 0) &
+            (self.df_setor_censitario.IS_CL == False)
+        ]
+
+        # Destinations: candidate locations — driven by df_CL directly
+        cl_sectors = set(self.df_CL.id_setor.to_list())        
+        df_CL = self.df_setor_censitario[
+            self.df_setor_censitario.SETOR.isin(cl_sectors)
+        ]        
+        
+        df_UBS = pd.concat([df_EL, df_CL]).drop_duplicates(subset="SETOR")
+
+        # EL_id  = df_EL.SETOR.to_list()
+        EL_id  = df_EL.CO_UNIDADE_UBS.astype(int).to_list()
+        EL_lat  = df_EL.LAT.to_list()
+        EL_long  = df_EL.LONG.to_list()
+
+        CL_id  = df_CL.SETOR.to_list()
+        
+
+        # PHC_id = df_UBS.SETOR.to_list()
+        PHC_id = EL_id + CL_id
+        PHC_lat = df_UBS.LAT.to_list()
+        PHC_long = df_UBS.LONG.to_list()
+        
+        origin_dest_pairs = {}
+        # (df_EL > PHC_id)
+
+        for o_id, o_lat, o_long in zip(SC_id, SC_lat, SC_long):
+            for d_id, d_lat, d_long in zip(PHC_id, PHC_lat, PHC_long):
+                origin_dest_pairs[(o_id, d_id)] = {
+                    "origin": {
+                        "id": o_id,
+                        "lat": o_lat,
+                        "long": o_long,
+                    },
+                    "destination": {
+                        "id": d_id,
+                        "lat": d_lat,
+                        "long": d_long,
+                    },
+                }        
+
+        # guarda no objeto para uso posterior
+        self.origin_dest_SC_PHC = origin_dest_pairs
+
+
 
 
     def read_and_format_json(self):
@@ -251,16 +393,21 @@ class DistanceAPICalculatorBySC(DistanceAPICalculator):
         self.create_origin_dest_PHC_SC()
         "ATENCAO: TEM UM ERRO AQUI! - CHECAR SE PRECISO DAS DISTANCIAS ENTRE TODOS OS SETORES CENSITARIOS!"
         self.create_origin_dest_Exist_PHC_to_SC()
+        self.create_origin_dest_SC_PHC()
+        self.create_origin_dest_PHC_to_same_facilities_level()
         #self.read_and_format_json()
         dist_PHC_SC, setores_sem_distancia_PHC = self.get_distances(self.origin_dest_PHC_SC)
+        dist_SC_PHC, setores_sem_distancia_PHC = self.get_distances(self.origin_dest_SC_PHC)
         dist_SC_SC, setores_sem_distancia_SC = self.get_distances(self.origin_dest_Exist_PHC_to_SC)
-        
-
+        dist_Exist_PHC_to_all_PHC, setores_sem_distancia_SC = self.get_distances(self.origin_dest_exist_PHC_all_PHC)        
+       
         #Preciso das distancias entre:
             # dist_SC_PHC (origem: setor censitario - destino: todas as unidades PHC)
             # dist_Exist_PHC_to_all_PHC
         
-        return dist_PHC_SC, dist_SC_SC
+        # return dist_PHC_SC, dist_SC_SC, dist_Exist_PHC_to_all_PHC
+        return dist_SC_PHC, dist_Exist_PHC_to_all_PHC
+        
 
 
 class DistanceAPICalculatorByCluster(DistanceAPICalculator):
@@ -337,6 +484,9 @@ class DistanceAPICalculatorByCluster(DistanceAPICalculator):
 
         # guarda no objeto para uso posterior
         self.origin_dest_exist_PHC_all_PHC = origin_dest_pairs
+
+    
+        
 
 
 

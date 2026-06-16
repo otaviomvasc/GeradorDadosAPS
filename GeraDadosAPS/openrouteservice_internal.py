@@ -477,8 +477,8 @@ def main():
             # input_file="Contagem.json",
             # output_file="Contagem_matrix_results_full_matrix.json",
             # Use raw strings (r"...") or barras duplas para evitar erro de unicodeescape em caminhos Windows
-            input_file=r"C:\Users\marce\OneDrive\Área de Trabalho\GeraDadosAPS\Dados\Dados Lagoa Santa\LagoaSanta.json",
-            output_file=r"C:\Users\marce\OneDrive\Área de Trabalho\GeraDadosAPS\Dados\Dados Lagoa Santa\LagoaSanta_matrix_results_full_matrix.json",
+            input_file=r"Dados\Dados Lagoa Santa\LagoaSanta.json",
+            output_file=r"Dados\Dados Lagoa Santa\LagoaSanta_matrix_results_full_matrix.json",
             batch_size=10,
             delay_between_batches=2.0  # Longer delay for rate limiting
         )
