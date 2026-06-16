@@ -155,6 +155,13 @@ class ScenarioDataBuilder():
                 )
 
         self.df_setor_censitario = self.df_setor_censitario.merge(df_pivot, how="left", on="CO_UNIDADE")
+        cols = [70.0, 71.0, 72.0, 74.0]
+
+        self.df_setor_censitario.loc[
+            self.df_setor_censitario.CO_UNIDADE > 0, cols
+        ] = self.df_setor_censitario.loc[
+            self.df_setor_censitario.CO_UNIDADE > 0, cols
+        ].astype(int)
 
 
     def read_and_format_SC_to_cluster_data(self):
@@ -375,7 +382,7 @@ class ScenarioDataBuilder():
 
         cols = [70.0, 71.0, 72.0, 74.0]
         self.df_setor_censitario.loc[self.df_setor_censitario.IS_CL, cols] = \
-            self.df_setor_censitario.loc[self.df_setor_censitario.IS_CL, cols].fillna(0.0)
+            self.df_setor_censitario.loc[self.df_setor_censitario.IS_CL, cols].fillna(0)
 
 
     def build(self):

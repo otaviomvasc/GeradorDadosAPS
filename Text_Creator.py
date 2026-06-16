@@ -649,7 +649,7 @@ class text_messages_creator_By_SC(text_messages_creator):
     def create_PHC_teams_text(self):
         header_text = "param CNES1(tr):	eSF	eSB	eMulti ACS:=\n"
         self.texts_variables.append(header_text)
-        df = self.df_PHC_EL_plus_EC.copy()
+        df = self.df_exist_PHC.copy()
         for _, row in df.iterrows():
             text_aux = " ".join([
                 str(row.CO_UNIDADE).rstrip('.0'),
@@ -661,7 +661,21 @@ class text_messages_creator_By_SC(text_messages_creator):
             ])
             self.texts_variables.append(text_aux)
         
+        # df = self.df_candidates_PHC.copy()
+        # for _, row in df.iterrows():
+        #     text_aux = " ".join([
+        #         str(row.CO_UNIDADE).rstrip('.0'),
+        #         str(int(row.get(70.0, 0))).rstrip('.0'),  # eSF
+        #         str(int(row.get(71.0, 0))).rstrip('.0'),  # eSB
+        #         str((row.get(72.0, 0))).rstrip('.0'),  # eMulti
+        #         str(int(row.get(74.0, 0))).rstrip('.0'),  # ACS
+        #         str("\n")
+        #     ])
+        #     self.texts_variables.append(text_aux)
         
+
+
+
         self.texts_variables.append(self.dot_vig)
 
     def create_distance_between_SC_PHC_text(self):
